@@ -1,27 +1,51 @@
 import { test, beforeEach, afterEach } from "vitest";
-import { assertAccount, LSWorld, LSWallet, LSContract } from "xsuite";
+import { e, FSWorld, FSWallet, FSContract } from "xsuite";
 
-let world: LSWorld;
-let deployer: LSWallet;
-let contract: LSContract;
+let world: FSWorld;
+let deployer: FSWallet;
+let contract: FSContract;
 
 beforeEach(async () => {
-  world = await LSWorld.start();
-  deployer = await world.createWallet();
-  ({ contract } = await deployer.deployContract({
+  world = await FSWorld.start();
+  deployer = await world.createWallet({
+    balance: 10n ** 18n,
+  });
+  contract = await deployer.createContract({
     code: "file:output/contract.wasm",
     codeMetadata: [],
-    gasLimit: 10_000_000,
-  }));
+    kvs: {
+      esdts: [
+        { id: "TOKEN-ABCDEF", roles: ["ESDTRoleLocalMint"] },
+      ]
+    }
+  });
 });
 
 afterEach(async () => {
   world.terminate();
 });
 
-test("Test", async () => {
-  assertAccount(await contract.getAccountWithKvs(), {
-    balance: 0n,
-    kvs: [],
+test("Tx with mint", async () => {
+  await deployer.callContract({
+    callee: contract,
+    funcName: "esdt_local_mint",
+    funcArgs: [
+      e.Str("TOKEN-ABCDEF"),
+      e.U64(0),
+      e.U(10000n),
+    ],
+    gasLimit: 10_000_000,
+  });
+});
+
+test("Query with mint", async () => {
+  await deployer.query({
+    callee: contract,
+    funcName: "esdt_local_mint",
+    funcArgs: [
+      e.Str("TOKEN-ABCDEF"),
+      e.U64(0),
+      e.U(10000n),
+    ],
   });
 });

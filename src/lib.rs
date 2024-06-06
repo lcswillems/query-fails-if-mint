@@ -9,4 +9,14 @@ pub trait Contract {
 
     #[upgrade]
     fn upgrade(&self) {}
+
+    #[endpoint]
+    fn esdt_local_mint(
+        &self,
+        token_identifier: TokenIdentifier,
+        nonce: u64,
+        amount: BigUint,
+    ) {
+        self.send().esdt_local_mint(&token_identifier, nonce, &amount);
+    }
 }
